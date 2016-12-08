@@ -4,8 +4,7 @@
 //
 //  Created by Michael Cubeddu on 11/25/16.
 //  Copyright © 2016 The Boys. All rights reserved.
-
-//Websites we used: http://www.appcoda.com/geo-targeting-ios/
+// Majority of code borrowed from Stack Overflow, Appcoda, Apple Documentation and Ray Wenderlich
 
 import UIKit
 import CoreLocation
@@ -13,29 +12,7 @@ import MapKit
 
 class ViewController: UIViewController, MKMapViewDelegate, CLLocationManagerDelegate {
     
-    // create outlets from storyboard
-        
-    @IBOutlet weak var newButton: UIButton!
-    @IBOutlet weak var button2: UIButton!
-    
-    @IBOutlet weak var map: MKMapView!
-
-    // show buttons for two closest locations
-    
-    @IBAction func buttonPressed(_ sender: Any) {
-        if (sender as AnyObject).tag == 0 {
-            placeLable = closestPlace
-        }
-        if (sender as AnyObject).tag == 1 {
-            placeLable = placeLable2
-        }
-    }
-    
-
-    
-    
-    
-    // initialize global
+    // initialize global variables
     let minDistance = 1000.0
     let locationManager = CLLocationManager()
     var nearByLocations = [CLLocation]()
@@ -44,30 +21,8 @@ class ViewController: UIViewController, MKMapViewDelegate, CLLocationManagerDele
     var placeLable2 = String()
     var closestPlace = String()
     
-    // hide the status bar
-    
-    override var prefersStatusBarHidden: Bool {
-        return true
-    }
-    
-    
-    // creates two options for mapview, that are clickable
-    
-    @IBOutlet weak var segmentedControl: UISegmentedControl!
-    @IBAction func changeMap(_ sender: UISegmentedControl) {
-        switch segmentedControl.selectedSegmentIndex
-        {
-        case 0:
-            map.mapType = MKMapType.standard;
-        case 1:
-            map.mapType = MKMapType.hybrid;
-        default:
-            break; 
-        } 
-    }
-    
-
-    // array of pins
+    // array of pins that have location
+    // global
 
     let pins = [
         Pins(title: "Wigglesworth Hall", coordinate: CLLocationCoordinate2D(latitude: 42.373043, longitude: -71.117063), info: "Freshman Dormitory"),
@@ -128,31 +83,75 @@ class ViewController: UIViewController, MKMapViewDelegate, CLLocationManagerDele
         Pins(title: "Harvard Business School", coordinate: CLLocationCoordinate2D(latitude: 42.365520, longitude: -71.122141), info: "THE B School!"),
         Pins(title: "Harvard Law School", coordinate: CLLocationCoordinate2D(latitude: 42.378091, longitude: -71.118858), info: "THE Law School!"),
         Pins(title: "John Harvard Statue", coordinate: CLLocationCoordinate2D(latitude: 42.3745, longitude: -71.1172), info: "Our claim to fame!"),
+        Pins(title: "Northwest Building", coordinate: CLLocationCoordinate2D(latitude: 42.379844, longitude: -71.115409), info: "aka Northwest Labs"),
+        Pins(title: "Museum of Comparative Zoology", coordinate: CLLocationCoordinate2D(latitude: 42.378931, longitude: -71.115264), info: "Zoology Museum"),
     ]
-
-    // set up locationamager
     
+    // function called once view controller elements have loaded
+    override func viewDidLoad() {
+        super.viewDidLoad()
+        
+        // hides button by default
+        newButton.isHidden = true
+        button2.isHidden = true
+       
+        // set up location manager to be as accurate as possible
+        locationManager.delegate = self;
+        locationManager.requestWhenInUseAuthorization()
+        locationManager.distanceFilter = kCLDistanceFilterNone;
+        locationManager.desiredAccuracy = kCLLocationAccuracyBest;
+        locationManager.startUpdatingLocation()
+        
+        // set up map to be as accurate as possible
+        map.delegate = self
+        map.showsUserLocation = true
+        
+        // add pins to map
+        let lengthOfArray = pins.count
+        for i in 0..<lengthOfArray {
+            let pin = pins[i]
+            map.addAnnotations([pin as MKAnnotation])
+        }
+    }
+
+    // function called once view controller has appeared on screen
+    override func viewDidAppear(_ animated: Bool) {
+        super.viewDidAppear(animated)
+        
+        
+        // set initial location where map will be (Harvard Yard)
+        
+        let initLocation = CLLocationCoordinate2DMake(42.3744, -71.1163)
+        
+        //start map with a tilt
+        
+        let mapCamera = MKMapCamera(lookingAtCenter: initLocation, fromDistance: 800.0, pitch: 45.0, heading: 0.0)
+        map.setCamera(mapCamera, animated: false)
+        
+    }
+
+    
+    // set up locationamager via the core location freamework
     func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
         
         let location = locations[0]
         
+        // shows user location
         self.map.showsUserLocation = true
         
+        // stores current location
         curLocation = CLLocation(latitude: location.coordinate.latitude, longitude: location.coordinate.longitude)
         
-        
-        
-        
+        // starts locatoin tracting, and initiates the two closest locations
         locationManager.startUpdatingLocation()
         var nearestLocation = Pins(title: String(), coordinate: CLLocationCoordinate2D(), info: String())
         var nearestLocation2 = Pins(title: String(), coordinate: CLLocationCoordinate2D(), info: String())
-
-
         
+        // sets minimum distance to ensure that user is still range
         var shortestDistance = minDistance
         var shortestDistance2 = minDistance
 
-
+        // goes through every pin and finds the two closest to the user
         for pin in pins {
             let distance = curLocation.distance(from:CLLocation(latitude: pin.coordinate.latitude, longitude: pin.coordinate.longitude))
             if distance < shortestDistance {
@@ -165,156 +164,85 @@ class ViewController: UIViewController, MKMapViewDelegate, CLLocationManagerDele
             }
         }
         
+        // creates the button lables for the two closest locations
         closestPlace = nearestLocation.title!
         placeLable2 = nearestLocation2.title!
         
         
-        
-        if shortestDistance != minDistance {
+        // only shows buttons if user is within the minDistance from Harvard Yard
+        if shortestDistance < minDistance {
             newButton.setTitle(nearestLocation.title! + " - More Info",for: .normal)
             newButton.isHidden = false
+            button2.setTitle(nearestLocation2.title! + " - More Info",for: .normal)
+            button2.isHidden = false
         }
         else {
             newButton.isHidden = true
         }
-        
-        
-        button2.setTitle(nearestLocation2.title! + " - More Info",for: .normal)
-        button2.isHidden = false
-
-
-
-
-        
     }
 
-
-    override func viewDidLoad() {
-        super.viewDidLoad()
-        newButton.isHidden = true
-        // Do any additional setup after loading the view, typically from a nib.
-        locationManager.delegate = self;
-        locationManager.requestWhenInUseAuthorization()
-        locationManager.distanceFilter = kCLDistanceFilterNone;
-        locationManager.desiredAccuracy = kCLLocationAccuracyBest;
-        locationManager.startUpdatingLocation()
-        
-        map.delegate = self
-        map.showsUserLocation = true
-      
-        
-        
-        // add pins to map
-        let lengthOfArray = pins.count
-        for i in 0..<lengthOfArray {
-            let pin = pins[i]
-            map.addAnnotations([pin as MKAnnotation])
-        }
-        
-
-        
-        
-        
-    }
     // add interactivity to annotations, add the detail disclosure button
     
     func mapView(_ mapView: MKMapView, viewFor annotation: MKAnnotation) -> MKAnnotationView? {
-        // 1
+        // identifier for the pins class
         let identifier = "Pins"
         
-        // 2
+        // if annotation is type Pins
         if annotation is Pins {
-            // 3
+            
+            // enable pins customization
             var annotationView = mapView.dequeueReusableAnnotationView(withIdentifier: identifier)
             
+            // if optional value "annotation" is nil...
             if annotationView == nil {
-                //4
+                
+                // enable annotation to show call out
                 annotationView = MKPinAnnotationView(annotation: annotation, reuseIdentifier: identifier)
                 annotationView!.canShowCallout = true
                 
-                // 5
+                // add a detail disclosure button
                 let btn = UIButton(type: .detailDisclosure)
                 annotationView!.rightCalloutAccessoryView = btn
-            } else {
-                // 6
+            }
+            
+            // otherwise keep it the same
+            else {
                 annotationView!.annotation = annotation
             }
             
             return annotationView
         }
         
-        // 7
         return nil
     }
     
-    // add button after hitting the detail disclosure button.
-    // Two options, one for more info, one to go back to the map
-    
-     func mapView(_ mapView: MKMapView, annotationView view: MKAnnotationView, calloutAccessoryControlTapped control: UIControl) {
+    // add alert after hitting the detail disclosure button with the pin title and info.
+    func mapView(_ mapView: MKMapView, annotationView view: MKAnnotationView, calloutAccessoryControlTapped control: UIControl) {
         let Pins = view.annotation as! Pins
         let placeName = Pins.title
         let placeInfo = Pins.info
         placeLable = placeName!
 
-        
+        // two options, one for more info, one to go back to the map
         let ac = UIAlertController(title: placeName, message: placeInfo, preferredStyle: .alert)
         ac.addAction(UIAlertAction(title: "Click for More Information", style: .default) { (_) -> Void in
             
+            // send to new story board with descriptions
             self.performSegue(withIdentifier: "moreInfo", sender: nil)
             
         })
+        // go back to the map
         ac.addAction(UIAlertAction(title: "No Thanks :(", style: .default))
 
         present(ac, animated: true)
-
-
     }
     
-    
-    //authenticate location
-    
-    override func viewDidAppear(_ animated: Bool) {
-        super.viewDidAppear(animated)
-        
-        // 1. status is not determined
-        if CLLocationManager.authorizationStatus() == .notDetermined {
-            locationManager.requestAlwaysAuthorization()
-        }
-            // 2. authorization were denied
-        else if CLLocationManager.authorizationStatus() == .denied {
-            let alert = UIAlertController(title: "Alert", message: "Location services were previously denied. Please enable location services for this app in Settings.", preferredStyle: UIAlertControllerStyle.alert)
-            alert.addAction(UIAlertAction(title: "Click", style: UIAlertActionStyle.default, handler: nil))
-            self.present(alert, animated: true, completion: nil)
-        }
-            // 3. we do have authorization
-        else if CLLocationManager.authorizationStatus() == .authorizedAlways {
-            locationManager.startUpdatingLocation()
-        }
-        // set initial location
-        
-        let initLocation = CLLocationCoordinate2DMake(42.3744, -71.1163)
-        
-        //start map with a tilt
-        
-        let mapCamera = MKMapCamera(lookingAtCenter: initLocation, fromDistance: 800.0, pitch: 45.0, heading: 0.0)
-        map.setCamera(mapCamera, animated: false)
-
+    // hide the status bar
+    override var prefersStatusBarHidden: Bool {
+        return true
     }
     
-    @IBAction func currLocation(_ sender: UIButton) {
-        
-        let initLocation = CLLocationCoordinate2DMake(curLocation.coordinate.latitude, curLocation.coordinate.longitude)
-        
-        //start map with a tilt
-        
-        let mapCamera = MKMapCamera(lookingAtCenter: initLocation, fromDistance: 800.0, pitch: 45.0, heading: 0.0)
-        map.setCamera(mapCamera, animated: false)
-        
-    }
-    
-  
-    
-    // pass building name
+    // when changing storyboards, include title of building clicked on
     override func prepare(for segue: UIStoryboardSegue, sender: Any?) {
         if segue.identifier == "moreInfo" {
             let secondVC = segue.destination as! infoVC
@@ -322,4 +250,49 @@ class ViewController: UIViewController, MKMapViewDelegate, CLLocationManagerDele
         }
     }
     
+    
+    // outlets connnecting nearest location buttons
+    @IBOutlet weak var newButton: UIButton!
+    @IBOutlet weak var button2: UIButton!
+    
+    // map outlet with name map to execute all map realted commands
+    @IBOutlet weak var map: MKMapView!
+    
+    // functions called when closest location buttons pressed
+    @IBAction func buttonPressed(_ sender: Any) {
+        if (sender as AnyObject).tag == 0 {
+            placeLable = closestPlace
+        }
+        if (sender as AnyObject).tag == 1 {
+            placeLable = placeLable2
+        }
+    }
+    
+    // move to current location when myLocation button pressed
+    @IBAction func currLocation(_ sender: UIButton) {
+        
+        // on click initializes location to current location
+        let initLocation = CLLocationCoordinate2DMake(curLocation.coordinate.latitude, curLocation.coordinate.longitude)
+        
+        // start map with a tilt
+        let mapCamera = MKMapCamera(lookingAtCenter: initLocation, fromDistance: 800.0, pitch: 45.0, heading: 0.0)
+        map.setCamera(mapCamera, animated: false)
+        
+    }
+    
+    // creates two options for the map view, that are clickable via segmented control
+    @IBOutlet weak var segmentedControl: UISegmentedControl!
+    @IBAction func changeMap(_ sender: UISegmentedControl) {
+        switch segmentedControl.selectedSegmentIndex
+        {
+        case 0:
+            map.mapType = MKMapType.standard;
+        case 1:
+            map.mapType = MKMapType.hybrid;
+        default:
+            break;
+        }
+    }
+
+
 }
