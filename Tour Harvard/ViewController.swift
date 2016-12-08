@@ -91,6 +91,7 @@ class ViewController: UIViewController, MKMapViewDelegate, CLLocationManagerDele
     override func viewDidLoad() {
         super.viewDidLoad()
         
+        
         // hides button by default
         newButton.isHidden = true
         button2.isHidden = true
@@ -105,6 +106,9 @@ class ViewController: UIViewController, MKMapViewDelegate, CLLocationManagerDele
         // set up map to be as accurate as possible
         map.delegate = self
         map.showsUserLocation = true
+        
+        // moves compass
+        map.layoutMargins = UIEdgeInsets(top: 60.0, left: 0, bottom: 0, right: 0)
         
         // add pins to map
         let lengthOfArray = pins.count
@@ -279,6 +283,8 @@ class ViewController: UIViewController, MKMapViewDelegate, CLLocationManagerDele
         map.setCamera(mapCamera, animated: false)
         
     }
+    
+    
     
     // creates two options for the map view, that are clickable via segmented control
     @IBOutlet weak var segmentedControl: UISegmentedControl!
